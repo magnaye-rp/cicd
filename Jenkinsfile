@@ -2,57 +2,75 @@ pipeline {
     agent any
 
     environment {
-        JAVA_HOME = "/opt/java17"
-        DEPLOY    = "/var/www/html"
+        GIT_REPO_URL = 'gitrepo'
+        GIT_CREDENTIALS_ID = 'github-pat'
+        GIT_BRANCH = 'main'
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/magnaye-rp/cicd.git',
-                    credentialsId: 'github-pat'
+                checkout scm: [
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${env.GIT_BRANCH}"]],
+                    userRemoteConfigs: [[
+                        url: "${env.GIT_REPO_URL}",
+                        credentialsId: "${env.GIT_CREDENTIALS_ID}"
+                    ]]
+                ]
             }
         }
 
-        stage('Setup Python') {
+        stage('Setup Python Environment') {
             steps {
                 sh '''
+                echo "Setting up Python environment..."
+
                 python3 -m venv venv
                 . venv/bin/activate
+
+                pip install --upgrade pip
                 pip install -r requirements.txt
                 '''
             }
         }
 
-        stage('Start Apache') {
-            steps {
-                sh 'sudo systemctl start apache2'
-            }
-        }
-
-        stage('Test') {
+        stage('Run Selenium Test') {
             steps {
                 sh '''
+                echo "Running Selenium tests..."
+
                 . venv/bin/activate
-                Xvfb :99 -screen 0 1024x768x16 &
-                export DISPLAY=:99
-                sleep 3
                 python test.py
                 '''
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to Apache') {
             steps {
                 sh '''
-                rsync -av --delete ./ ${DEPLOY}/
-                sudo chown -R www-data:www-data ${DEPLOY}
-                sudo chmod -R 755 ${DEPLOY}
+                echo "Deploying FULL PHP project to Apache..."
+
+                # Sync all files (NEW + UPDATED + DELETED)
+                sudo rsync -av -o --delete ./ /var/www/html/
+
+                # Fix ownership
+                sudo chown -R www-data:www-data /var/www/html/
                 '''
             }
         }
+    }
 
+    post {
+        success {
+            echo "CI/CD SUCCESS ✔ Deployment completed"
+        }
+        failure {
+            echo "CI/CD FAILED ❌ Check logs"
+        }
+        always {
+            cleanWs()
+        }
     }
 }
