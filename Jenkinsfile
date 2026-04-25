@@ -1,39 +1,61 @@
 pipeline {
     agent any
-    
+    environment {
+        GIT_REPO = 'https://github.com/magnaye-rp/cicd.git'
+        BRANCH = 'main'
+        DEPLOY_PATH = '/var/www/html'
+    }
     triggers {
         githubPush()
     }
-    
     stages {
-        stage("Checkout") {
+        stage('Checkout') {
             steps {
-                git branch: "main", url: "https://github.com/magnaye-rp/cicd.git"
+                git branch: "${BRANCH}", url: "${GIT_REPO}"
             }
         }
-        stage("Setup") {
+        stage('Setup Python') {
             steps {
-                sh "python3 -m venv venv && . venv/bin/activate && pip install -r requirements.txt"
-            }
-        }
-        stage("Test") {
-            steps {
-                sh """
+                sh '''
+                python3 -m venv venv
                 . venv/bin/activate
-                Xvfb :99 -screen 0 1024x768x16 &
-                export DISPLAY=:99
-                sleep 2
-                python test.py
-                """
+                pip install --upgrade pip
+                pip install -r requirements.txt
+                '''
             }
         }
-        stage("Deploy") {
+        stage('Start Apache') {
             steps {
-                sh """
-                sudo rsync -av --delete ./ /var/www/html/
-                sudo chown -R www-data:www-data /var/www/html
-                sudo chmod -R 755 /var/www/html
-                """
+                sh 'sudo systemctl start apache2'
+            }
+        }
+        stage('Run Tests') {
+            steps {
+                sh '''
+                . venv/bin/activate
+                
+                # Kill any leftover processes
+                pkill -f Xvfb || true
+                pkill -f chromedriver || true
+                sleep 1
+                
+                # Start fresh Xvfb
+                Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+                sleep 3
+                
+                # Run test with display set
+                export DISPLAY=:99
+                python test.py
+                '''
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh '''
+                sudo rsync -av --delete ./ ${DEPLOY_PATH}/
+                sudo chown -R www-data:www-data ${DEPLOY_PATH}
+                sudo chmod -R 755 ${DEPLOY_PATH}
+                '''
             }
         }
     }
