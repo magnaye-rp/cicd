@@ -8,9 +8,8 @@ options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-gpu")
-options.binary_location = "/usr/bin/chromium-browser"
-
-service = Service("/usr/bin/chromedriver")
+options.binary_location = "/snap/chromium/current/usr/lib/chromium-browser/chrome"
+service = Service("/snap/chromium/current/usr/lib/chromium-browser/chromedriver")
 driver = webdriver.Chrome(service=service, options=options)
 
 driver.get("http://localhost")
