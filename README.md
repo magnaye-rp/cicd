@@ -1,2 +1,17 @@
-# cicd
-This lab guide walks through a complete CI/CD setup on a Linux environment using Apache, Jenkins, Selenium, and Python, with manual management of Java 17 to ensure compatibility. It emphasizes a clean, conflict-free environment, particularly useful if Nextcloud or NGINX were previously installed.
+# 🚀 CI/CD Lab Guide (Clean & Conflict-Free Setup)
+
+This project demonstrates a **complete CI/CD pipeline** using:
+
+- Apache (Web Server)
+- Jenkins (Automation Server)
+- Selenium (Automated Testing)
+- Python (Test Execution)
+- Ngrok (Webhook Exposure)
+
+It is designed for a **clean Linux environment**, removing conflicts from services like Apache, NGINX, or Nextcloud, and enforcing **Java 17 for Jenkins compatibility**.
+
+---
+
+## 📌 Overview
+
+This lab simulates a real CI/CD workflow:
